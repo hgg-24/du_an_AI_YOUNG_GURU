@@ -165,7 +165,7 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown("<h3 style='color: #FF007F;'>🎮 MỤC TIÊU TRÒ CHƠI</h3>", unsafe_allow_html=True)
-    target_x = dual_input("Tọa độ X mục tiêu (m)", "tx", 1, 150, 20)
+    target_x = dual_input("Tọa độ X mục tiêu (m)", "tx", 1, 150, 50)
     target_y = dual_input("Tọa độ Y mục tiêu (m)", "ty", 0, 50, 0)
 
 # [TẠO DỮ LIỆU & ĐỒ THỊ GLOBAL]
@@ -267,3 +267,4 @@ with tab2:
         st.markdown("**📈 Đối chiếu với Đồ thị Mô phỏng**")
         st.caption("Theo dõi đồ thị quỹ đạo hiện tại để đối chiếu với gợi ý của Gia sư")
         st.plotly_chart(fig, use_container_width=True, key="graph_tab2")
+
