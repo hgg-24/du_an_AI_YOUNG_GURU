@@ -8,15 +8,21 @@ from scipy.optimize import minimize_scalar
 
 # [CẤU HÌNH & CSS]
 st.set_page_config(page_title="Bài dự thi của Studyholics", layout="wide")
+
 st.markdown("""
 <style>
     .stApp, .stApp > header { background-color: #0A1128 !important; }
-    p, span, label, h1, h2, h3, h4, li { color: #F8FAFC !important; font-family: sans-serif !important; }
+    
+    p, label, h1, h2, h3, h4, li { color: #F8FAFC !important; font-family: sans-serif !important; }
+    span.material-symbols-rounded { font-family: 'Material Symbols Rounded' !important; color: #94A3B8 !important; }
+    
     h1 { color: #00FFFF !important; text-shadow: 0 0 12px rgba(0, 255, 255, 0.6); text-align: center; text-transform: uppercase; margin-bottom: 30px;}
     [data-testid="stSidebar"] { background-color: #121833 !important; border-right: 1px solid #00FFFF !important; padding-top: 20px;}
     
-    div[data-baseweb="input"] > div, div[data-baseweb="select"] > div { background-color: #FFFFFF !important; border: 1px solid #94A3B8 !important; border-radius: 5px !important; }
-    div[data-baseweb="input"] input, div[data-baseweb="select"] div { color: #000000 !important; font-weight: bold !important; }
+    div[data-baseweb="input"] > div, div[data-baseweb="select"] > div, div[data-baseweb="textarea"] > div { background-color: #FFFFFF !important; border: 1px solid #94A3B8 !important; border-radius: 5px !important; }
+    div[data-baseweb="input"] input, div[data-baseweb="select"] div, textarea { color: #000000 !important; font-weight: bold !important; }
+    div[data-testid="stFileUploadDropzone"] * { color: #1E293B !important; }
+    
     ul[role="listbox"], ul[role="listbox"] li, div[data-baseweb="popover"] * { background-color: #FFFFFF !important; color: #000000 !important; }
     
     div[data-testid="stTickBar"] { display: none !important; }
@@ -26,7 +32,6 @@ st.markdown("""
     .stTabs [data-baseweb="tab"] { color: #94A3B8 !important; }
     .stTabs [aria-selected="true"] { color: #00FFFF !important; border-bottom: 2px solid #00FFFF !important; background-color: transparent !important; }
 
-    /* Bản vá lỗi UI */
     div[data-baseweb="select"] span { color: #000000 !important; }
     div[data-baseweb="input"] svg, div[data-baseweb="select"] svg { fill: #000000 !important; color: #000000 !important; }
     p.dual-label { margin-bottom: 2px !important; margin-top: 10px !important; font-weight: bold !important; color: #00FFFF !important; }
@@ -158,7 +163,6 @@ with st.sidebar:
         else:
             alpha = dual_input("Góc ném α (độ)", "alpha_val", -90, 90, 45)
 
-    # ĐÃ SỬA: Thụt lề đúng chuẩn để nằm gọn trong Sidebar
     st.markdown("---")
     st.markdown("<h3 style='color: #FF007F;'>🎮 MỤC TIÊU TRÒ CHƠI</h3>", unsafe_allow_html=True)
     target_x = dual_input("Tọa độ X mục tiêu (m)", "tx", 1, 150, 20)
@@ -166,25 +170,40 @@ with st.sidebar:
 
 # [TẠO DỮ LIỆU & ĐỒ THỊ GLOBAL]
 df = calc_trajectory(v0, h0, alpha, g, has_drag)
+
 fig = go.Figure()
+
+if has_drag:
+    df_ideal = calc_trajectory(v0, h0, alpha, g, has_drag=False)
+    fig.add_trace(go.Scatter(
+        x=df_ideal["X (m)"], y=df_ideal["Y (m)"], mode="lines",
+        line=dict(color="#FDE047", width=2, dash="dash"), 
+        name="Lý tưởng (k=0)",
+        hovertemplate="[Lý tưởng]<br>t: %{customdata[0]:.3f} s<br>X: %{x:.3f} m<br>Y: %{y:.3f} m",
+        customdata=df_ideal[["Thời gian (s)"]].values
+    ))
+
+trace_name = "Thực tế (k=0.05)" if has_drag else "Quỹ đạo"
 fig.add_trace(go.Scatter(
     x=df["X (m)"], y=df["Y (m)"], mode="lines",
-    line=dict(color="#00FFFF", width=3), name="Quỹ đạo",
+    line=dict(color="#00FFFF", width=3), name=trace_name,
     hovertemplate="t: %{customdata[0]:.3f} s<br>X: %{x:.3f} m<br>Y: %{y:.3f} m<br>v: %{customdata[1]:.3f} m/s<br>Wđ: %{customdata[2]:.2f} J<br>Wt: %{customdata[3]:.2f} J",
     customdata=df[["Thời gian (s)", "Vận tốc (m/s)", "Động năng (J)", "Thế năng (J)"]].values
 ))
+
 fig.add_trace(go.Scatter(
     x=[target_x], y=[target_y], mode="markers",
     marker=dict(color="#FF007F", symbol="star", size=15, line=dict(color="white", width=1)),
     name="Mục tiêu"
 ))
 
-# ĐÃ SỬA: Xóa scaleanchor="x" và scaleratio=1 ở trục Y để đồ thị tự động co giãn đẹp mắt
 fig.update_layout(
     plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
     xaxis=dict(title="Tọa độ X (m)", gridcolor="#1E293B", zerolinecolor="#1E293B"),
     yaxis=dict(title="Tọa độ Y (m)", gridcolor="#1E293B", zerolinecolor="#1E293B"),
-    font=dict(color="#F8FAFC"), margin=dict(l=20, r=20, t=30, b=20)
+    font=dict(color="#F8FAFC"),
+    legend=dict(font=dict(color="#F8FAFC")), 
+    margin=dict(l=20, r=20, t=30, b=20)
 )
 
 # [RENDER TABS]
@@ -200,16 +219,20 @@ with tab1:
     c2.metric("Thời gian bay t (s)", f"{t_flight:.4f}")
     c3.metric("Độ cao cực đại H (m)", f"{H_max:.4f}")
     
+    # ---- BẢN VÁ LOGIC PHÁO HOA ----
     distances = np.sqrt((df["X (m)"] - target_x)**2 + (df["Y (m)"] - target_y)**2)
     if distances.min() <= 1.0:
-        hit_id = f"{target_x}_{target_y}_{v0}_{alpha}"
+        hit_id = f"{target_x}_{target_y}_{v0}_{alpha}_{has_drag}" 
         if st.session_state.get("last_hit") != hit_id:
             st.balloons()
             st.session_state["last_hit"] = hit_id
         st.success("🎉 Chúc mừng! Quỹ đạo đã trúng mục tiêu!")
+    else:
+        # Nếu trượt mục tiêu, xóa trí nhớ cũ đi để lần sau bắn trúng lại vẫn có pháo hoa
+        st.session_state["last_hit"] = None
     
     st.plotly_chart(fig, use_container_width=True)
-    st.markdown("### 📊 Bảng Số Liệu Chi Tiết")
+    st.markdown("### 📊 Bảng Số Liệu Chi Tiết (Theo quỹ đạo thực tế)")
     st.dataframe(df.round(4), use_container_width=True, height=200)
 
 with tab2:
