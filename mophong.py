@@ -182,8 +182,8 @@ with st.sidebar:
     else:
         auto_opt = st.checkbox("Bật Tự động tìm Góc ném tối ưu")
         if auto_opt:
-            with st.spinner("Đang xử lý thuật toán tối ưu (Scipy)..."): alpha, max_dist = optimize_angle(v0, h0, g, has_drag)
-            st.success(f"Góc hội tụ: {alpha:.4f}° (Tầm xa tối đa: {max_dist:.4f}m)")
+            with st.spinner("Đang xử lý thuật toán tối ưu..."): alpha, max_dist = optimize_angle(v0, h0, g, has_drag)
+            st.success(f"Góc hội tụ: {alpha:.4f}° (Tầm xa: {max_dist:.4f}m)")
         else: alpha = dual_input("Góc ném α (độ)", "alpha_val", -90, 90, 45)
     st.markdown("---")
     st.markdown("<h3 style='color: #FF007F;'>🎮 MỤC TIÊU TRÒ CHƠI</h3>", unsafe_allow_html=True)
@@ -233,12 +233,13 @@ with tab1:
     st.dataframe(df.round(4), use_container_width=True, height=200)
 
 with tab2:
-    api_ready = False
     try:
-        genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+        api_key = st.secrets["GEMINI_API_KEY"]
+        genai.configure(api_key=api_key)
         api_ready = True
-    except Exception as e:
-        st.error("⚠️ Chưa cấu hình API Key trong Streamlit Secrets! Tính năng Trợ giảng AI tạm khóa.")
+    except:
+        api_ready = False
+        st.error("⚠️ Chưa cấu hình API Key trong Streamlit Secrets!")
     
     st.markdown("<h3 style='color:#00FFFF;'>🤖 Gia sư AI - Giải đáp Vật lý & Code</h3>", unsafe_allow_html=True)
     c_chat, c_graph = st.columns([1.2, 1])
@@ -251,26 +252,43 @@ with tab2:
         if st.button("Gửi câu hỏi", type="primary", use_container_width=True, disabled=not api_ready):
             if uploaded_file and q:
                 try:
-                    with st.spinner("Gia sư đang phân tích..."):
+                    with st.spinner("Gia sư đang quét hệ thống AI của bạn..."):
                         img = Image.open(uploaded_file)
-                        
-                        # [QUAN TRỌNG]: Ép hệ màu ảnh về RGB để chống lỗi định dạng file lạ từ uploader
+                        # Ép chuẩn màu RGB để AI không bị lỗi đọc ảnh PNG trong suốt
                         if img.mode != 'RGB':
                             img = img.convert('RGB')
+
+                        # TỰ ĐỘNG DÒ TÌM MODEL ĐƯỢC PHÉP DÙNG TỪ API KEY CỦA BẠN
+                        models_info = genai.list_models()
+                        available_models = [m.name for m in models_info if 'generateContent' in m.supported_generation_methods]
                         
-                        # Chỉ dùng duy nhất 1 model flash mới nhất và ổn định nhất
-                        model = genai.GenerativeModel("gemini-1.5-flash")
-                        prompt_an_toan = f"Đóng vai Gia sư Vật lý 10 nghiêm khắc. Giải thích hiện tượng, KHÔNG giải hộ đáp án cuối.\n\nHọc sinh hỏi: {q}"
-                        
-                        res = model.generate_content([prompt_an_toan, img])
-                        
-                        st.success("Phản hồi từ Gia Sư:")
-                        st.markdown('<div class="ai-response-box">', unsafe_allow_html=True)
-                        st.markdown(res.text) 
-                        st.markdown('</div>', unsafe_allow_html=True)
-                        
+                        target_model = None
+                        # Ưu tiên lấy dòng 1.5 mới nhất
+                        for m in available_models:
+                            if 'gemini-1.5' in m:
+                                target_model = m.replace('models/', '')
+                                break
+                        # Nếu không có 1.5, lấy bất kỳ model nào có hỗ trợ
+                        if not target_model and len(available_models) > 0:
+                            target_model = available_models[0].replace('models/', '')
+
+                        if not target_model:
+                            st.error("API Key của bạn không có quyền truy cập mô hình AI nào! Vui lòng tạo Key mới.")
+                        else:
+                            # Đã tìm thấy model phù hợp, tiến hành gửi câu hỏi
+                            model = genai.GenerativeModel(target_model)
+                            prompt_an_toan = f"Đóng vai Gia sư Vật lý 10 nghiêm khắc. Giải thích hiện tượng, KHÔNG giải hộ đáp án cuối.\n\nHọc sinh hỏi: {q}"
+                            res = model.generate_content([prompt_an_toan, img])
+                            
+                            st.success(f"Phản hồi từ Gia Sư (Đang dùng engine: {target_model}):")
+                            st.markdown('<div class="ai-response-box">', unsafe_allow_html=True)
+                            st.markdown(res.text) 
+                            st.markdown('</div>', unsafe_allow_html=True)
+                            
                 except Exception as e:
                     st.error(f"⚠️ Lỗi từ Google AI: {e}")
+                    # In thẳng danh sách model ra màn hình để bắt bệnh nếu vẫn lỗi
+                    st.warning("DANH SÁCH AI MÀ API KEY CỦA BẠN ĐƯỢC PHÉP DÙNG: " + str(available_models))
             else:
                 st.warning("Vui lòng tải ảnh đề bài và nhập câu hỏi!")
                 
