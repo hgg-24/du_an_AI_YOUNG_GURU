@@ -2,7 +2,7 @@ streamlit
 numpy
 pandas
 plotly
-google-generativeai>=0.8.0
+google-generativeai==0.8.3
 Pillow
 scipy
 graphviz
