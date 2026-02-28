@@ -379,22 +379,34 @@ with tab2:
             if uploaded_file and q:
                 try:
                     with st.spinner("Gia sư đang phân tích..."):
-                        model = genai.GenerativeModel("gemini-1.5-flash-latest", system_instruction="Bạn là gia sư Vật lý 10 nghiêm khắc. Chỉ gợi ý phương pháp, giải thích hiện tượng. KHÔNG giải ra đáp án cuối cùng.")
-                        res = model.generate_content([q, Image.open(uploaded_file)])
+                        img = Image.open(uploaded_file)
+                        
+                        try:
+                            # Ưu tiên dùng model 1.5 Flash cực nhanh và thông minh
+                            model = genai.GenerativeModel(
+                                "gemini-1.5-flash", 
+                                system_instruction="Bạn là gia sư Vật lý 10 nghiêm khắc. Chỉ gợi ý phương pháp, giải thích hiện tượng. KHÔNG giải ra đáp án cuối cùng."
+                            )
+                            res = model.generate_content([q, img])
+                            
+                        except Exception as e_inner:
+                            # [DỰ PHÒNG CHỐNG SẬP] Nếu server Streamlit bị kẹt phiên bản cũ (Lỗi 404)
+                            # Tự động chuyển về dùng model đời cũ tương thích ngược
+                            model_fallback = genai.GenerativeModel("gemini-pro-vision")
+                            
+                            # Do model cũ không hỗ trợ system_instruction, ta nhét thẳng yêu cầu vào câu hỏi
+                            prompt_du_phong = f"Đóng vai gia sư Vật lý 10 nghiêm khắc. Chỉ gợi ý phương pháp, không giải ra đáp án cuối cùng.\n\nCâu hỏi của học sinh: {q}"
+                            res = model_fallback.generate_content([prompt_du_phong, img])
+
                         st.success("Phản hồi từ Gia Sư:")
                         
-                        # VÁ LỖI ẢNH 5: Dùng st.markdown kết hợp với CSS div để KHÔNG hỏng định dạng Markdown & LaTeX
+                        # Hiển thị kết quả bằng HTML/CSS để giữ chữ đen nền trắng và không hỏng công thức Toán học
                         st.markdown('<div class="ai-response-box">', unsafe_allow_html=True)
-                        st.markdown(res.text) # Render nguyên bản
+                        st.markdown(res.text) 
                         st.markdown('</div>', unsafe_allow_html=True)
                         
                 except Exception as e:
-                    st.error(f"⚠️ Lỗi kết nối API: {e}")
+                    # Nếu lỗi API Key hết hạn hoặc sai cú pháp, in lỗi rõ ràng
+                    st.error(f"⚠️ Lỗi kết nối máy chủ AI: Hãy thử lại sau! (Chi tiết lỗi: {e})")
             else:
                 st.warning("Vui lòng tải ảnh đề bài và nhập câu hỏi!")
-                
-    with c_graph:
-        st.markdown("**📈 Đối chiếu với Đồ thị Mô phỏng**")
-        st.caption("Theo dõi đồ thị quỹ đạo hiện tại để đối chiếu với gợi ý của Gia sư")
-        st.plotly_chart(fig, use_container_width=True, key="graph_tab2")
-
