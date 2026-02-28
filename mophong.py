@@ -390,11 +390,8 @@ with tab2:
                             res = model.generate_content([q, img])
                             
                         except Exception as e_inner:
-                            # [DỰ PHÒNG CHỐNG SẬP] Nếu server Streamlit bị kẹt phiên bản cũ (Lỗi 404)
-                            # Tự động chuyển về dùng model đời cũ tương thích ngược
+                            # DỰ PHÒNG CHỐNG SẬP: Tự động chuyển về model đời cũ
                             model_fallback = genai.GenerativeModel("gemini-pro-vision")
-                            
-                            # Do model cũ không hỗ trợ system_instruction, ta nhét thẳng yêu cầu vào câu hỏi
                             prompt_du_phong = f"Đóng vai gia sư Vật lý 10 nghiêm khắc. Chỉ gợi ý phương pháp, không giải ra đáp án cuối cùng.\n\nCâu hỏi của học sinh: {q}"
                             res = model_fallback.generate_content([prompt_du_phong, img])
 
@@ -410,3 +407,8 @@ with tab2:
                     st.error(f"⚠️ Lỗi kết nối máy chủ AI: Hãy thử lại sau! (Chi tiết lỗi: {e})")
             else:
                 st.warning("Vui lòng tải ảnh đề bài và nhập câu hỏi!")
+                
+    with c_graph:
+        st.markdown("**📈 Đối chiếu với Đồ thị Mô phỏng**")
+        st.caption("Theo dõi đồ thị quỹ đạo hiện tại để đối chiếu với gợi ý của Gia sư")
+        st.plotly_chart(fig, use_container_width=True, key="graph_tab2")
