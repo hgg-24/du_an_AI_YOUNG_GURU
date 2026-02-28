@@ -379,7 +379,7 @@ with tab2:
             if uploaded_file and q:
                 try:
                     with st.spinner("Gia sư đang phân tích..."):
-                        model = genai.GenerativeModel("gemini-1.5-flash", system_instruction="Bạn là gia sư Vật lý 10 nghiêm khắc. Chỉ gợi ý phương pháp, giải thích hiện tượng. KHÔNG giải ra đáp án cuối cùng.")
+                        model = genai.GenerativeModel("gemini-1.5-flash-latest", system_instruction="Bạn là gia sư Vật lý 10 nghiêm khắc. Chỉ gợi ý phương pháp, giải thích hiện tượng. KHÔNG giải ra đáp án cuối cùng.")
                         res = model.generate_content([q, Image.open(uploaded_file)])
                         st.success("Phản hồi từ Gia Sư:")
                         
@@ -397,3 +397,4 @@ with tab2:
         st.markdown("**📈 Đối chiếu với Đồ thị Mô phỏng**")
         st.caption("Theo dõi đồ thị quỹ đạo hiện tại để đối chiếu với gợi ý của Gia sư")
         st.plotly_chart(fig, use_container_width=True, key="graph_tab2")
+
