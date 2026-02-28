@@ -12,25 +12,17 @@ st.set_page_config(page_title="Bài dự thi của Studyholics", layout="wide")
 # [CSS - BẢN FIX UI TẬN GỐC]
 st.markdown("""
 <style>
-    /* 1. NỀN TỔNG THỂ */
     .stApp, .stApp > header { background-color: #0A1128 !important; }
-    
-    /* 2. CHỮ MẶC ĐỊNH MÀU TRẮNG (Chỉ nhắm vào văn bản, thả tự do cho div/span để không hỏng Icon) */
     p, label, li, h1, h2, h3, h4, h5, h6 { color: #FFFFFF; font-family: 'Verdana', sans-serif; }
-    
-    /* Fix lỗi 'keyboard_double' - Cứu lại bộ font icon của Streamlit */
     .material-symbols-rounded, [data-testid="collapsedControl"] * { font-family: 'Material Symbols Rounded' !important; color: #FFFFFF !important; }
-    
     h1 { color: #00FFFF !important; text-shadow: 0 0 15px #00FFFF; text-transform: uppercase; text-align: center; font-weight: 900 !important; }
     div[data-testid="stDecoration"], div[data-testid="stStatusWidget"] { display: none !important; }
 
-    /* 3. DROPDOWN & INPUT SỐ (NỀN TRẮNG - CHỮ ĐEN) */
     div[data-baseweb="select"] > div, div[data-baseweb="input"] > div { background-color: #FFFFFF !important; border: 2px solid #00FFFF !important; }
     div[data-baseweb="select"] *, div[data-baseweb="input"] input { color: #000000 !important; font-weight: bold !important; }
     div[data-baseweb="popover"], ul[data-baseweb="menu"], ul[data-baseweb="menu"] li { background-color: #FFFFFF !important; color: #000000 !important; font-weight: bold !important; }
     ul[data-baseweb="menu"] li:hover { background-color: #E2E8F0 !important; }
 
-    /* 4. VÁ LỖI CHỮ TÀNG HÌNH Ở UPLOAD & TEXT AREA */
     [data-testid='stFileUploadDropzone'] { background-color: #FFFFFF !important; border: 2px dashed #00FFFF !important; padding: 20px; }
     [data-testid='stFileUploadDropzone'] div, [data-testid='stFileUploadDropzone'] p, [data-testid='stFileUploadDropzone'] span { color: #000000 !important; font-weight: bold !important; }
     [data-testid='stFileUploadDropzone'] svg { fill: #000000 !important; width: 3rem !important; height: 3rem !important; }
@@ -39,15 +31,12 @@ st.markdown("""
     div[data-baseweb="textarea"] > div, div[data-baseweb="textarea"] textarea { background-color: #FFFFFF !important; color: #000000 !important; font-weight: bold !important; }
     div[data-baseweb="textarea"] textarea::placeholder { color: #64748B !important; font-weight: normal !important; }
 
-    /* 5. VÁ LỖI LEGEND PLOTLY TỐI MÀU */
     g.legend text { fill: #FFFFFF !important; font-family: 'Verdana', sans-serif !important; }
 
-    /* 6. HỘP HIỂN THỊ CÂU TRẢ LỜI CỦA AI (Chữ đen, bảo toàn LaTeX đỏ) */
     .ai-response-box { background-color: #FFFFFF; border: 2px solid #00FFFF; border-radius: 8px; padding: 20px; margin-top: 15px; color: #000000 !important; }
     .ai-response-box p, .ai-response-box li, .ai-response-box span { color: #000000 !important; }
     .ai-response-box .katex * { color: #D90429 !important; font-weight: bold; }
 
-    /* 7. CÁC THÀNH PHẦN KHÁC */
     [data-testid="stSidebar"] { background-color: #111827 !important; border-right: 2px solid #00FFFF; }
     div[data-baseweb="slider"] div[role="slider"] { background-color: #FF007F !important; border: 2px solid white; }
     .stTabs [data-baseweb="tab"] { color: #CBD5E1 !important; font-weight: bold; }
@@ -265,7 +254,11 @@ with tab2:
                     with st.spinner("Gia sư đang phân tích..."):
                         img = Image.open(uploaded_file)
                         
-                        # CHỈ DÙNG 1 MÔ HÌNH DUY NHẤT: gemini-1.5-flash
+                        # [QUAN TRỌNG]: Ép hệ màu ảnh về RGB để chống lỗi định dạng file lạ từ uploader
+                        if img.mode != 'RGB':
+                            img = img.convert('RGB')
+                        
+                        # Chỉ dùng duy nhất 1 model flash mới nhất và ổn định nhất
                         model = genai.GenerativeModel("gemini-1.5-flash")
                         prompt_an_toan = f"Đóng vai Gia sư Vật lý 10 nghiêm khắc. Giải thích hiện tượng, KHÔNG giải hộ đáp án cuối.\n\nHọc sinh hỏi: {q}"
                         
@@ -280,6 +273,7 @@ with tab2:
                     st.error(f"⚠️ Lỗi từ Google AI: {e}")
             else:
                 st.warning("Vui lòng tải ảnh đề bài và nhập câu hỏi!")
+                
     with c_graph:
         st.markdown("**📈 Đối chiếu với Đồ thị Mô phỏng**")
         st.caption("Theo dõi đồ thị quỹ đạo hiện tại để đối chiếu với gợi ý của Gia sư")
