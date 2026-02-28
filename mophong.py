@@ -6,46 +6,169 @@ import google.generativeai as genai
 from PIL import Image
 from scipy.optimize import minimize_scalar
 
-# [CẤU HÌNH & CSS]
+# [CẤU HÌNH TRANG]
 st.set_page_config(page_title="Bài dự thi của Studyholics", layout="wide")
 
+# [CSS - BẢN FIX CUỐI CÙNG CHO TOÀN BỘ LỖI UI]
 st.markdown("""
 <style>
+    /* --- 1. CẤU HÌNH CHUNG NỀN TỐI --- */
     .stApp, .stApp > header { background-color: #0A1128 !important; }
     
-    p, label, h1, h2, h3, h4, li { color: #F8FAFC !important; font-family: sans-serif !important; }
-    span.material-symbols-rounded { font-family: 'Material Symbols Rounded' !important; color: #94A3B8 !important; }
+    /* VÁ LỖI ẢNH 1: Bỏ thẻ 'span' và 'div' ra khỏi lệnh ép font toàn cục để không hỏng Icon Streamlit */
+    p, label, li, h1, h2, h3, h4, h5, h6 { 
+        color: #FFFFFF; 
+        font-family: 'Verdana', sans-serif; 
+    }
     
-    h1 { color: #00FFFF !important; text-shadow: 0 0 12px rgba(0, 255, 255, 0.6); text-align: center; text-transform: uppercase; margin-bottom: 30px;}
-    [data-testid="stSidebar"] { background-color: #121833 !important; border-right: 1px solid #00FFFF !important; padding-top: 20px;}
+    /* Cứu lại bộ font Icon của Streamlit */
+    .material-symbols-rounded { font-family: 'Material Symbols Rounded' !important; color: #FFFFFF !important; }
     
-    div[data-baseweb="input"] > div, div[data-baseweb="select"] > div, div[data-baseweb="textarea"] > div { background-color: #FFFFFF !important; border: 1px solid #94A3B8 !important; border-radius: 5px !important; }
-    div[data-baseweb="input"] input, div[data-baseweb="select"] div, textarea { color: #000000 !important; font-weight: bold !important; }
-    div[data-testid="stFileUploadDropzone"] * { color: #1E293B !important; }
-    
-    ul[role="listbox"], ul[role="listbox"] li, div[data-baseweb="popover"] * { background-color: #FFFFFF !important; color: #000000 !important; }
-    
-    div[data-testid="stTickBar"] { display: none !important; }
-    div[data-baseweb="slider"] div[data-testid="stSliderTrack"] > div { background-color: #FFB6C1 !important; }
-    div[data-baseweb="slider"] div[role="slider"] { background-color: #FFB6C1 !important; border: 2px solid #FF69B4 !important; }
-    
-    .stTabs [data-baseweb="tab"] { color: #94A3B8 !important; }
-    .stTabs [aria-selected="true"] { color: #00FFFF !important; border-bottom: 2px solid #00FFFF !important; background-color: transparent !important; }
+    /* Tiêu đề chính Neon */
+    h1 { color: #00FFFF !important; text-shadow: 0 0 15px #00FFFF; text-transform: uppercase; text-align: center; font-weight: 900 !important; }
+    div[data-testid="stDecoration"], div[data-testid="stStatusWidget"] { display: none !important; }
 
-    div[data-baseweb="select"] span { color: #000000 !important; }
-    div[data-baseweb="input"] svg, div[data-baseweb="select"] svg { fill: #000000 !important; color: #000000 !important; }
-    p.dual-label { margin-bottom: 2px !important; margin-top: 10px !important; font-weight: bold !important; color: #00FFFF !important; }
+    /* --- 2. XỬ LÝ DROPDOWN & INPUT SỐ (NỀN TRẮNG - CHỮ ĐEN) --- */
+    div[data-baseweb="select"] > div, div[data-baseweb="input"] > div {
+        background-color: #FFFFFF !important; 
+        border: 2px solid #00FFFF !important;
+    }
+    div[data-baseweb="select"] *, div[data-baseweb="input"] input {
+        color: #000000 !important; 
+        fill: #000000 !important;
+        font-weight: bold !important;
+    }
+    div[data-baseweb="popover"], ul[data-baseweb="menu"], ul[data-baseweb="menu"] li {
+        background-color: #FFFFFF !important;
+        color: #000000 !important;
+        font-weight: bold !important;
+    }
+    ul[data-baseweb="menu"] li:hover { background-color: #E2E8F0 !important; }
+
+    /* --- 3. VÁ LỖI ẢNH 3, 4: KHUNG UPLOAD & TEXT AREA (NỀN TRẮNG - CHỮ ĐEN) --- */
+    [data-testid='stFileUploadDropzone'] {
+        background-color: #FFFFFF !important; 
+        border: 2px dashed #00FFFF !important; 
+        padding: 20px;
+    }
+    [data-testid='stFileUploadDropzone'] * { color: #000000 !important; font-weight: bold !important; }
+    [data-testid='stFileUploadDropzone'] svg { fill: #000000 !important; width: 3rem !important; height: 3rem !important; }
+    [data-testid='stFileUploadDropzone'] button {
+        background-color: #00FFFF !important; color: #000000 !important; border: none !important; font-weight: 900 !important;
+    }
+    /* Text Area của AI */
+    div[data-baseweb="textarea"] > div, div[data-baseweb="textarea"] textarea {
+        background-color: #FFFFFF !important;
+        color: #000000 !important;
+        font-weight: bold !important;
+    }
+
+    /* --- 4. VÁ LỖI ẢNH 5: KHUNG HIỂN THỊ CÂU TRẢ LỜI CỦA AI --- */
+    /* Tạo class riêng để giữ màu nền trắng chữ đen nhưng không làm hỏng LaTeX */
+    .ai-response-box {
+        background-color: #FFFFFF; 
+        border: 2px solid #00FFFF; 
+        border-radius: 8px; 
+        padding: 20px; 
+        margin-top: 15px;
+    }
+    .ai-response-box p, .ai-response-box li, .ai-response-box div, .ai-response-box span {
+        color: #000000 !important;
+    }
+    .ai-response-box .katex * { color: #D90429 !important; font-weight: bold; } /* Đỏ đậm cho công thức Lý */
+
+    /* --- 5. CÁC THÀNH PHẦN KHÁC --- */
+    [data-testid="stSidebar"] { background-color: #111827 !important; border-right: 2px solid #00FFFF; }
+    div[data-baseweb="slider"] div[role="slider"] { background-color: #FF007F !important; border: 2px solid white; }
+    .stTabs [data-baseweb="tab"] { color: #CBD5E1 !important; font-weight: bold; }
+    .stTabs [aria-selected="true"] { color: #00FFFF !important; border-bottom-color: #00FFFF !important; }
+
+    /* Hộp Expander */
+    div[data-testid="stExpander"] details > div { background-color: #FFFFFF !important; border: 2px solid #00FFFF !important; border-top: none; color: #000000 !important; }
+    div[data-testid="stExpander"] details > div * { color: #000000 !important; }
+    div[data-testid="stExpander"] details > div h4 { color: #00008B !important; font-weight: bold !important; }
+    div[data-testid="stExpander"] details > summary { background-color: #F8FAFC !important; border: 2px solid #00FFFF !important; border-radius: 5px 5px 0 0; color: #0A1128 !important; }
+    div[data-testid="stExpander"] details > summary svg { display: none !important; }
+    div[data-testid="stExpander"] details > summary::before { content: "▶" !important; color: #0A1128 !important; font-size: 1.2rem !important; margin-right: 10px !important; display: inline-block; transition: transform 0.3s ease; }
+    div[data-testid="stExpander"] details[open] > summary::before { transform: rotate(90deg) !important; }
+    div[data-testid="stExpander"] details > summary p { color: #0A1128 !important; font-weight: 900 !important; font-size: 1.2rem !important; display: inline; }
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown("<h1>MÔ PHỎNG CHUYỂN ĐỘNG NÉM</h1>", unsafe_allow_html=True)
+st.markdown("<h1>🚀 MÔ PHỎNG CHUYỂN ĐỘNG NÉM</h1>", unsafe_allow_html=True)
 
-# [HÀM NHẬP LIỆU]
+# --- [PHẦN 1] HƯỚNG DẪN SỬ DỤNG ---
+with st.expander("📖 HƯỚNG DẪN SỬ DỤNG (QUY TRÌNH CHUẨN)", expanded=False):
+    st.markdown("#### 🔻 Sơ đồ luồng hoạt động:")
+    st.graphviz_chart('''
+    digraph {
+        rankdir=LR;
+        bgcolor="white"; 
+        
+        node [shape=box, style="filled,rounded", fillcolor="#E0F2FE", fontname="Verdana", fontsize=11, fontcolor="black", penwidth=1, color="#0284C7"];
+        edge [color="#334155", penwidth=2, arrowsize=1.0]; 
+        
+        Start [label="BẮT ĐẦU", shape=circle, fillcolor="#F472B6", fontcolor="white", width=1.0, style=filled];
+        SetEnv [label="1. Chọn Môi trường\n(Trái Đất/Sao Hỏa...)"];
+        SetParams [label="2. Nhập thông số\n(v0, góc, độ cao)"];
+        View [label="Xem Đồ thị & Số liệu", fillcolor="#FEF08A"];
+        Target [label="3. Đặt Mục tiêu (X, Y)"];
+        Check [label="Trúng đích?\n(Sai số < 1m)", shape=diamond, fillcolor="#FDE047"];
+        Win [label="PHÁO HOA! 🎉", shape=star, fillcolor="#EF4444", fontcolor="white", fontsize=14];
+        Adjust [label="Chỉnh lại v0, góc", fillcolor="#E5E7EB"];
+        
+        AI [label="4. Bí bài?\nHỏi Gia sư AI (Tab 2)", shape=note, style=filled, fillcolor="#1E293B", fontcolor="#00FFFF"];
+
+        Start -> SetEnv -> SetParams -> View;
+        View -> Target -> Check;
+        Check -> Win [label="CÓ", fontcolor="#15803d", fontsize=10];
+        Check -> Adjust [label="KHÔNG", fontcolor="#b91c1c", fontsize=10];
+        Adjust -> SetParams;
+        Adjust -> AI [style=dashed, color="#0EA5E9"];
+    }
+    ''')
+
+# --- [PHẦN 2] GÓC HỌC TẬP ---
+with st.expander("📘 GÓC HỌC TẬP: CÔNG THỨC & THUẬT TOÁN", expanded=False):
+    tab_lythuyet, tab_thuatToan = st.tabs(["📚 VẬT LÝ 10", "💻 KHOA HỌC MÁY TÍNH"])
+    
+    with tab_lythuyet:
+        c1, c2 = st.columns(2)
+        with c1:
+            st.markdown("#### 1. Môi trường Lý tưởng (Chân không)")
+            st.info("Bỏ qua lực cản. Vật chỉ chịu tác dụng của Trọng lực (P).")
+            st.latex(r"\begin{cases} x = v_0 \cos(\alpha) \cdot t \\ y = h_0 + v_0 \sin(\alpha) \cdot t - \frac{1}{2}gt^2 \end{cases}")
+            
+        with c2:
+            st.markdown("#### 2. Môi trường Thực tế (Có gió)")
+            st.warning("Có lực cản không khí tỉ lệ với bình phương vận tốc. Quỹ đạo sẽ bị méo.")
+            st.latex(r"\vec{F}_c = -k \cdot v \cdot \vec{v}")
+
+        st.markdown("---")
+        st.markdown("#### 3. Định luật Bảo toàn Năng lượng")
+        st.latex(r"W = W_đ + W_t = \frac{1}{2}mv^2 + mgy")
+    
+    with tab_thuatToan:
+        st.markdown("#### 1. Tại sao máy tính vẽ được đường cong?")
+        st.success("Máy tính dùng phương pháp số **Euler** để tính toán từng bước nhảy siêu nhỏ (dt = 0.005s).")
+        st.code("""
+# Thuật toán Euler (Python Code)
+vx_moi = vx_cu + ax * dt   # Tính vận tốc mới
+vy_moi = vy_cu + ay * dt
+x_moi  = x_cu  + vx_moi * dt # Tính tọa độ mới
+y_moi  = y_cu  + vy_moi * dt
+        """, language="python")
+        
+        st.markdown("#### 2. AI tìm góc bắn tối ưu thế nào?")
+        st.info("Hệ thống sử dụng thuật toán tối ưu hóa **Golden-section Search** (thư viện `scipy`) để tìm góc bắn xa nhất.")
+        st.latex(r"\alpha_{opt} = \arg \max (L)")
+
+# [HÀM NHẬP LIỆU KÉP]
 def dual_input(label, key, min_val, max_val, default_val, step=0.1):
     if key not in st.session_state: st.session_state[key] = float(default_val)
     def update_num(): st.session_state[key] = st.session_state[f"n_{key}"]
     def update_sli(): st.session_state[key] = st.session_state[f"s_{key}"]
-    st.markdown(f"<p class='dual-label'>{label}</p>", unsafe_allow_html=True)
+    st.markdown(f"<p style='color:#FFFFFF; margin-bottom:2px; font-weight:bold;'>{label}</p>", unsafe_allow_html=True)
     c1, c2 = st.columns([1, 2.5])
     with c1: st.number_input(label, min_value=float(min_val), max_value=float(max_val), value=float(st.session_state[key]), step=float(step), key=f"n_{key}", on_change=update_num, label_visibility="collapsed")
     with c2: st.slider(label, min_value=float(min_val), max_value=float(max_val), value=float(st.session_state[key]), step=float(step), key=f"s_{key}", on_change=update_sli, label_visibility="collapsed")
@@ -165,7 +288,7 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown("<h3 style='color: #FF007F;'>🎮 MỤC TIÊU TRÒ CHƠI</h3>", unsafe_allow_html=True)
-    target_x = dual_input("Tọa độ X mục tiêu (m)", "tx", 1, 150, 50)
+    target_x = dual_input("Tọa độ X mục tiêu (m)", "tx", 1, 150, 50) 
     target_y = dual_input("Tọa độ Y mục tiêu (m)", "ty", 0, 50, 0)
 
 # [TẠO DỮ LIỆU & ĐỒ THỊ GLOBAL]
@@ -186,23 +309,25 @@ if has_drag:
 trace_name = "Thực tế (k=0.05)" if has_drag else "Quỹ đạo"
 fig.add_trace(go.Scatter(
     x=df["X (m)"], y=df["Y (m)"], mode="lines",
-    line=dict(color="#00FFFF", width=3), name=trace_name,
+    line=dict(color="#00FFFF", width=3), 
+    name=trace_name,
     hovertemplate="t: %{customdata[0]:.3f} s<br>X: %{x:.3f} m<br>Y: %{y:.3f} m<br>v: %{customdata[1]:.3f} m/s<br>Wđ: %{customdata[2]:.2f} J<br>Wt: %{customdata[3]:.2f} J",
     customdata=df[["Thời gian (s)", "Vận tốc (m/s)", "Động năng (J)", "Thế năng (J)"]].values
 ))
 
 fig.add_trace(go.Scatter(
     x=[target_x], y=[target_y], mode="markers",
-    marker=dict(color="#FF007F", symbol="star", size=15, line=dict(color="white", width=1)),
+    marker=dict(color="#FF007F", symbol="star", size=15, line=dict(color="white", width=2)), 
     name="Mục tiêu"
 ))
 
+# VÁ LỖI ẢNH 2: Ép màu trắng trực tiếp cho Legend
 fig.update_layout(
     plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
-    xaxis=dict(title="Tọa độ X (m)", gridcolor="#1E293B", zerolinecolor="#1E293B"),
-    yaxis=dict(title="Tọa độ Y (m)", gridcolor="#1E293B", zerolinecolor="#1E293B"),
-    font=dict(color="#F8FAFC"),
-    legend=dict(font=dict(color="#F8FAFC")), 
+    font=dict(color="#FFFFFF"), 
+    xaxis=dict(title="Tọa độ X (m)", gridcolor="#475569", zerolinecolor="#FFFFFF"),
+    yaxis=dict(title="Tọa độ Y (m)", gridcolor="#475569", zerolinecolor="#FFFFFF"),
+    legend=dict(font=dict(color="#FFFFFF"), orientation="h", y=1.1), 
     margin=dict(l=20, r=20, t=30, b=20)
 )
 
@@ -219,7 +344,6 @@ with tab1:
     c2.metric("Thời gian bay t (s)", f"{t_flight:.4f}")
     c3.metric("Độ cao cực đại H (m)", f"{H_max:.4f}")
     
-    # ---- BẢN VÁ LOGIC PHÁO HOA ----
     distances = np.sqrt((df["X (m)"] - target_x)**2 + (df["Y (m)"] - target_y)**2)
     if distances.min() <= 1.0:
         hit_id = f"{target_x}_{target_y}_{v0}_{alpha}_{has_drag}" 
@@ -228,7 +352,6 @@ with tab1:
             st.session_state["last_hit"] = hit_id
         st.success("🎉 Chúc mừng! Quỹ đạo đã trúng mục tiêu!")
     else:
-        # Nếu trượt mục tiêu, xóa trí nhớ cũ đi để lần sau bắn trúng lại vẫn có pháo hoa
         st.session_state["last_hit"] = None
     
     st.plotly_chart(fig, use_container_width=True)
@@ -236,10 +359,12 @@ with tab1:
     st.dataframe(df.round(4), use_container_width=True, height=200)
 
 with tab2:
+    api_ready = False
     try:
         genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+        api_ready = True
     except Exception as e:
-        st.error("Chưa cấu hình API Key trong Streamlit Secrets!")
+        st.error("⚠️ Chưa cấu hình API Key trong Streamlit Secrets! Tính năng Trợ giảng AI tạm khóa.")
     
     st.markdown("<h3 style='color:#00FFFF;'>🤖 Gia sư AI - Giải đáp Vật lý & Code</h3>", unsafe_allow_html=True)
     c_chat, c_graph = st.columns([1.2, 1])
@@ -250,14 +375,19 @@ with tab2:
             
         q = st.text_area("Hỏi Gia sư (Không giải bài hộ, chỉ gợi ý):", height=150)
         
-        if st.button("Gửi câu hỏi", type="primary", use_container_width=True):
+        if st.button("Gửi câu hỏi", type="primary", use_container_width=True, disabled=not api_ready):
             if uploaded_file and q:
                 try:
                     with st.spinner("Gia sư đang phân tích..."):
                         model = genai.GenerativeModel("gemini-1.5-flash", system_instruction="Bạn là gia sư Vật lý 10 nghiêm khắc. Chỉ gợi ý phương pháp, giải thích hiện tượng. KHÔNG giải ra đáp án cuối cùng.")
                         res = model.generate_content([q, Image.open(uploaded_file)])
                         st.success("Phản hồi từ Gia Sư:")
-                        st.write(res.text)
+                        
+                        # VÁ LỖI ẢNH 5: Dùng st.markdown kết hợp với CSS div để KHÔNG hỏng định dạng Markdown & LaTeX
+                        st.markdown('<div class="ai-response-box">', unsafe_allow_html=True)
+                        st.markdown(res.text) # Render nguyên bản
+                        st.markdown('</div>', unsafe_allow_html=True)
+                        
                 except Exception as e:
                     st.error(f"⚠️ Lỗi kết nối API: {e}")
             else:
@@ -267,4 +397,3 @@ with tab2:
         st.markdown("**📈 Đối chiếu với Đồ thị Mô phỏng**")
         st.caption("Theo dõi đồ thị quỹ đạo hiện tại để đối chiếu với gợi ý của Gia sư")
         st.plotly_chart(fig, use_container_width=True, key="graph_tab2")
-
