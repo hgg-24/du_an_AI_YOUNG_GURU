@@ -1,0 +1,12 @@
+name: Keep ED-ODYSSEY Alive
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wake up the app
+        run: curl -s https://mo-phong-vat-ly-10.streamlit.app/ > /dev/null
